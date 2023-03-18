@@ -170,7 +170,6 @@ proceed = (i) => {
     }
     if (i < 99) {
         output.innerHTML = displayQuestion(i + 1) + '<button id="back" onclick="goBack(' + (i + 1) + ')">&lt&ltback</button>&emsp;<button id="next" onclick="proceed(' + (i + 1) + ')">next&gt&gt</button></label>';
-        submit();
     }
     else {
         prevSubmit();
