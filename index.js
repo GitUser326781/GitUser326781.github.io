@@ -4,6 +4,7 @@ var choices = [];
 var userChoices = [];
 var counter = 0;
 var starttime = 0;
+var stopTimer = false;
 var timeTotal;
 
 let output = document.getElementById("result");
@@ -108,7 +109,7 @@ function setup() {
     for (let i = 0; i < 100; i++) {
         let temp0 = [];
         let temp1 = [];
-        temp0[0] = allText(indexQ[i], indexC[i], temp);
+        temp0[0] = allText(indexQ[i] + 1, indexC[i], temp);
         temp1[0] = temp[indexC[i] + 1];
         if (temp[indexC[i] + 2] == "C.") {
             temp1[2] = temp[indexC[i] + 3];
@@ -130,9 +131,7 @@ function setup() {
         choices[i] = temp1;
     }
 
-    for (let i = 0; i < 100; i++) {
-        shuffle(i);
-    }
+    shuffle();
     startMenu();
 }
 
@@ -154,15 +153,12 @@ updateTimer = () => {
         const TIME = Date.now();
         let timePassed = TIME - starttime;
         let timeLeft = 5401000 - timePassed;
-        if (timeLeft > 0) {
+        if (timeLeft > 0 && !stopTimer) {
             const hour = String(Math.floor(timeLeft / 3600000)).padStart(2, '0');
             const minu = String(Math.floor((timeLeft - hour * 3600000) / 60000)).padStart(2, '0');
             const seco = String(Math.floor((timeLeft - hour * 3600000 - minu * 60000) / 1000)).padStart(2, '0');
             document.getElementById("timer").innerText = hour + ':' + minu + ':' + seco;
             updateTimer()
-        }
-        else {
-            document.getElementById("timer").innerText = '00:00:00';
         }
     }, 100);
 }
@@ -174,6 +170,7 @@ proceed = (i) => {
     }
     if (i < 99) {
         output.innerHTML = displayQuestion(i + 1) + '<button id="back" onclick="goBack(' + (i + 1) + ')">&lt&ltback</button>&emsp;<button id="next" onclick="proceed(' + (i + 1) + ')">next&gt&gt</button></label>';
+        submit();
     }
     else {
         prevSubmit();
@@ -299,36 +296,37 @@ prevSubmit = () => {
     for (let i = 0; i < 100; i++) {
         temp += displayQuestion(i);
     }
-    output.innerHTML = '<button id="submit" onclick="submit()">Submit</button>' + temp + '<button id="submit" onclick="submit()">Submit</button>';
+    output.innerHTML = '<button id="submit" onclick="submit()">Submit</button><br>' + temp + '<button id="submit" onclick="submit()">Submit</button>';
 }
 
 submit = () => {
+    stopTimer = true;
     timeTotal = Date.now() - starttime;
     const hour = Math.floor(timeTotal / 3600000);
     const minu = Math.floor((timeTotal - hour * 3600000) / 60000);
     const seco = Math.floor((timeTotal - hour * 3600000 - minu * 60000) / 1000);
     let score = 0;
-    let temp;
+    let temp = '';
     for (let i = 0; i < 100; i++) {
         temp += displayAnswer(i);
         if (userChoices[i] == qna[i][1]) {
             score++;
         }
     }
-    output.innerHTML = '<p>' + score + '/100</p><p>It took ' + hour + ':' + minu + ':' + seco + '</p>' + temp;
+    output.innerHTML = '<p>' + score + '/100</p><p>It took ' + String(hour).padStart(hour.length + 1, '0') + ':' + String(minu).padStart(2, '0') + ':' + String(seco).padStart(2, '0') + '</p>' + temp;
 
 }
 
 displayAnswer = (i) => {
     var display = [];
     display.push(
-        '<label>' + qna[i][0] + '<br>'
+        '<p>' + qna[i][0] + '<br>'
         + 'A. ' + choices[i][0] + '<br>'
         + 'B. ' + choices[i][1] + '<br>'
         + 'C. ' + choices[i][2] + '<br>'
-        + 'D. ' + choices[i][3] + '<br>'
-        + '<p>' + toLetter(qna[i][1]) + '&emsp;You chose ' + toLetter(userChoices[i]) + '<br>'
-        + qna[i][2] + '</p><br></label>'
+        + 'D. ' + choices[i][3] + '<br><br>'
+        + toLetter(qna[i][1]) + '&emsp;You chose ' + toLetter(userChoices[i]) + '<br>'
+        + qna[i][2] + '</p><br>'
     )
     return display;
 }
@@ -389,15 +387,25 @@ toAnswer = (str) => {
     }
 }
 
-shuffle = (u) => {
-    for (let i = 3; i >= 0; i--) {
+shuffle = () => {
+    for (let u = 0; u < 100; u++) {
+        for (let i = 3; i >= 0; i--) {
+            const R = Math.floor(Math.random() * (i + 1));
+            [choices[u][i], choices[u][R]] = [choices[u][R], choices[u][i]];
+            if (i == qna[u][1]) {
+                qna[u][1] = R;
+            }
+            else if (R == qna[u][1]) {
+                qna[u][1] = i;
+            }
+        }
+    }
+
+    for (let i = 0; i < 100; i++) {
         const R = Math.floor(Math.random() * (i + 1));
-        [choices[u][i], choices[u][R]] = [choices[u][R], choices[u][i]];
-        if (i == qna[u][1]) {
-            qna[u][1] = R;
-        }
-        else if (R == qna[u][1]) {
-            qna[u][1] = i;
-        }
+        [qna[i], qna[R], choices[i], choices[R]] = [qna[R], qna[i], choices[R], choices[i]];
+    }
+    for(let i = 0; i < 100; i++){
+        qna[i][0] = (i + 1) + '. ' + qna[i][0];
     }
 }
