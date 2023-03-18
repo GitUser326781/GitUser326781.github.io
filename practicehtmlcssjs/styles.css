@@ -1,0 +1,17 @@
+body{
+    font-family: Arial, Helvetica, sans-serif;
+}
+.timer-container{
+    width: 240px;
+    height: 60px;
+ background-color:lightgray;
+ border: 1px, solid, black;
+ float: right;
+ text-align: center;
+ text-justify: center;
+ text-align: justify;
+ font-size: 32px;
+}
+.result-container{
+
+}
