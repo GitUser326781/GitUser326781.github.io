@@ -2,13 +2,32 @@
 var layers;
 var questions;
 var counter;
+var current;
 var starttime;
 var stopTimer;
 var timeTotal;
 var fr;
 
+// add action listeners
+document.getElementById("back").addEventListener("click", function back() {
+  getChecked();
+  document.getElementById("choices" + current).style.display = "none";
+  current--;
+  progress();
+})
+document.getElementById("next").addEventListener("click", function() {
+  getChecked();
+  document.getElementById("choices" + current).style.display = "none";
+  current++;
+  progress();
+})
+document.getElementById("submit").addEventListener("click", function() {
+  submit();
+})
+
 let output = document.getElementById("result");
 let timer = document.getElementById("timer");
+
 class questionData { // declare object class for quiz snippet
   constructor() { // declare and initialise constructor and attributes
     this.question = ''; // question text
@@ -34,9 +53,16 @@ function convert() { // Function to change pdf to the formatted test
   layers = [];
   questions = [];
   counter = 0;
+  current = 0;
   starttime = 0;
   stopTimer = false;
-  timeTotal;
+  // make sure all test elements are gone
+  document.getElementById("back").style.display = "none";
+  document.getElementById("next").style.display = "none";
+  document.getElementById("submit").style.display = "none";
+  timer.style.display = "none";
+
+  // declare and initialise file reader variable
   fr = new FileReader();
   // declare text convertion object variable
   var pdff = new Pdf2TextClass();
@@ -47,9 +73,8 @@ function convert() { // Function to change pdf to the formatted test
     // call function to extract file text
     pdff.pdfToText(fr.result);
   }
-  // read the file
+  // check the file type
   var file = document.getElementById('pdffile').files[0];
-  console.log(file);
   if (file.type == 'application/pdf')
     fr.readAsDataURL(file)
   else
@@ -166,25 +191,31 @@ function setup() { // function to take document data and convert it to be usable
     const R = Math.floor(Math.random() * (i + 1)); // generate a random number
     // switch the questions around
     [questions[i], questions[R]] = [questions[R], questions[i]];
-  }
-  console.log(questions)
-  // start the quiz menu
+  }  // start the quiz menu
   startMenu();
 }
 
 function startMenu() {
-  output.innerHTML = '<p>You will have 90 minutes to complete the quiz. If you take longer than the timeframe, you\'ll be given the amount of time you took regardless.</p><br><button id="start" onclick="start()">Start</button>';
-  timer.innerText = '01:30:00';
+  if (questions.length == 100 && questions.reason != "") {
+    output.innerHTML = '<p>You will have 90 minutes to complete the quiz. If you take longer than the timeframe, you\'ll be given the amount of time you took regardless.</p><br><button id="start" onclick="start()">Start</button>';
+    timer.innerText = '01:30:00';
+    timer.style.display = "flex"
+  }
+  else {
+    output.innerHTML = '<p>An Error Occured!</p>';
+  }
 }
 
-start = () => {
-  starttime = Date.now();
-  let lastTime = starttime;
-  setTimeout(updateTimer(starttime, lastTime), 100);
-  output.innerHTML = displayQuestion(0) + '<button id="back" &emsp&emsp;<button id="next" onclick="proceed(0)">Next &gt&gt</button></label>';
+function start() { // function to start the test
+  starttime = Date.now(); // save the started time
+  let lastTime = starttime; // set the previous time as the started time
+  setTimeout(updateTimer(starttime, lastTime), 100); // update the timer every tenth of a second
+  output.innerHTML = "";
+  document.getElementById("next").style.display = "unset";
+  progress();
 }
 
-updateTimer = () => {
+function updateTimer() {
   setTimeout(function () {
     const TIME = Date.now();
     let timePassed = TIME - starttime;
@@ -199,125 +230,68 @@ updateTimer = () => {
   }, 100);
 }
 
-proceed = (i) => {
-  getChecked(i);
-  if (i == counter) {
-    counter++;
-  }
-  if (i < 99) {
-    output.innerHTML = displayQuestion(i + 1) + '<button id="back" onclick="goBack(' + (i + 1) + ')">&lt&lt Back</button>&emsp;<button id="next" onclick="proceed(' + (i + 1) + ')">Next &gt&gt</button></label>';
+function progress() {
+  if (current < 100) {
+    var d
+    if (current >= counter) {
+      d = document.createElement("div");
+      d.id = "choices" + current;
+      d.className = "question-style";
+      d.innerHTML = displayQuestion(); // display question
+      output.append(d);
+      counter++;
+    }
+    else {
+      d = document.getElementById("choices" + current);
+      d.style.display = "unset";
+    }
+    // add progression buttons depending on question number
+    switch (current) {
+      case 0: {
+        document.getElementById("back").style.display = "none";
+        break;
+      }
+      default: {
+        document.getElementById("back").style.display = "unset";
+      }
+    }
   }
   else {
-    prevSubmit();
-  }
-}
-goBack = (i) => {
-  getChecked(i);
-  if (i > 1) {
-    //document.getElementById(userChoices[i-1]).checked = true;
-    output.innerHTML = displayQuestion(i - 1) + '<button id="back" onclick="goBack(' + (i - 1) + ')">&lt&lt Back</button>&emsp;<button id="next" onclick="proceed(' + (i - 1) + ')">Next &gt&gt</button></label>';
-  }
-  else if (i > 0) {
-    output.innerHTML = displayQuestion(0) + '<button id="back" &emsp&emsp;<button id="next" onclick="proceed(0)">Next &gt&gt</button></label>';
+    for (let i = 0; i < 100; i++) {
+      document.getElementById("choices" + i).style.display = "unset";
+    }
+    document.getElementById("next").style.display = "none";
+    document.getElementById("submit").style.display = "unset";
   }
 }
 
-getChecked = (i) => {
-  if (document.getElementById(i + '0') != null) {
-    if (document.getElementById(i + '0').checked) {
-      questions[i].chosen = 0;
-    }
-    else if (document.getElementById(i + '1').checked) {
-      questions[i].chosen = 1;
-    }
-    else if (document.getElementById(i + '2').checked) {
-      questions[i].chosen = 2;
-    }
-    else if (document.getElementById(i + '3').checked) {
-      questions[i].chosen = 3;
+getChecked = () => {
+  var choicebtn = document.getElementsByName("choice" + current)
+  for (let i = 0; i < choicebtn.length; i++) {
+    if (choicebtn[i].checked) {
+      questions[current].chosen = i;
+      // console.log(questions[i]);
+      break;
     }
   }
 }
 
-displayQuestion = (i) => {
-  var display = [];
-  if (counter > i && questions[i].chosen == 0) {
-    display.push(
-      '<label>' + (i + 1) + '. ' + questions[i].question + '<br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '0" checked>'
-      + '<label for="' + i + '0">' + "A. " + questions[i].choices[0] + '</label><br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '1">'
-      + '<label for="' + i + '1">' + "B. " + questions[i].choices[1] + '</label><br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '2">'
-      + '<label for="' + i + '2">' + "C. " + questions[i].choices[2] + '</label><br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '3">'
-      + '<label for="' + i + '3">' + "D. " + questions[i].choices[3] + '</label><br></label>'
-    )
-  }
-  else if (counter > i && questions[i].chosen == 1) {
-    display.push(
-      '<label>' + (i + 1) + '. ' + questions[i].question + '<br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '0">'
-      + '<label for="' + i + '0">' + questions[i].choices[0] + '</label><br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '1" checked>'
-      + '<label for="' + i + '1">' + questions[i].choices[1] + '</label><br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '2">'
-      + '<label for="' + i + '2">' + questions[i].choices[2] + '</label><br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '3">'
-      + '<label for="' + i + '3">' + questions[i].choices[3] + '</label><br></label>'
-    )
-  }
-  else if (counter > i && questions[i].chosen == 2) {
-    display.push(
-      '<label>' + (i + 1) + '. ' + questions[i].question + '<br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '0">'
-      + '<label for="' + i + '0">' + questions[i].choices[0] + '</label><br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '1">'
-      + '<label for="' + i + '1">' + questions[i].choices[1] + '</label><br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '2" checked>'
-      + '<label for="' + i + '2">' + questions[i].choices[2] + '</label><br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '3">'
-      + '<label for="' + i + '3">' + questions[i].choices[3] + '</label><br></label>'
-    )
-  }
-  else if (counter > i && questions[i].chosen == 3) {
-    display.push(
-      '<label>' + (i + 1) + '. ' + questions[i].question + '<br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '0">'
-      + '<label for="' + i + '0">' + questions[i].choices[0] + '</label><br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '1">'
-      + '<label for="' + i + '1">' + questions[i].choices[1] + '</label><br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '2">'
-      + '<label for="' + i + '2">' + questions[i].choices[2] + '</label><br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '3" checked>'
-      + '<label for="' + i + '3">' + questions[i].choices[3] + '</label><br></label>'
-    )
-  }
-  else {
-    display.push(
-      '<label>' + (i + 1) + '. ' + questions[i].question + '<br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '0">'
-      + '<label for="' + i + '0">' + "A. " + questions[i].choices[0] + '</label><br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '1">'
-      + '<label for="' + i + '1">' + "B. " + questions[i].choices[1] + '</label><br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '2">'
-      + '<label for="' + i + '2">' + "C. " + questions[i].choices[2] + '</label><br>'
-      + '<input type="radio" name="choice' + i + '" id="' + i + '3">'
-      + '<label for="' + i + '3">' + "D. " + questions[i].choices[3] + '</label><br></label>'
-    )
-  }
-  return display;
-}
-
-prevSubmit = () => {
-  let temp = '';
-  for (let i = 0; i < 100; i++) {
-    temp += displayQuestion(i);
-  }
-  output.innerHTML = '<button id="submit" onclick="submit()">Submit</button><br>' + temp + '<button id="submit" onclick="submit()">Submit</button>';
+function displayQuestion() {
+  return '<p>' + (current + 1) + '. ' + questions[current].question + '</p>'
+    + '<input type="radio" name="choice' + current + '" id="' + current + '0">'
+    + '<label for="' + current + '0">' + "A. " + questions[current].choices[0] + '</label><br>'
+    + '<input type="radio" name="choice' + current + '" id="' + current + '1">'
+    + '<label for="' + current + '1">' + "B. " + questions[current].choices[1] + '</label><br>'
+    + '<input type="radio" name="choice' + current + '" id="' + current + '2">'
+    + '<label for="' + current + '2">' + "C. " + questions[current].choices[2] + '</label><br>'
+    + '<input type="radio" name="choice' + current + '" id="' + current + '3">'
+    + '<label for="' + current + '3">' + "D. " + questions[current].choices[3] + '</label><br>'
 }
 
 submit = () => {
+  document.getElementById("back").style.display = "none";
+  document.getElementById("next").style.display = "none";
+  document.getElementById("submit").style.display = "none";
   stopTimer = true;
   timeTotal = Date.now() - starttime;
   const hour = Math.floor(timeTotal / 3600000);
@@ -332,7 +306,7 @@ submit = () => {
     }
   }
   output.innerHTML = '<p>' + score + '/100</p><p>It took ' + String(hour).padStart(hour.length + 1, '0') + ':' + String(minu).padStart(2, '0') + ':' + String(seco).padStart(2, '0') + '</p>' + temp;
-
+  document.documentElement.scrollTop = 0;
 }
 
 displayAnswer = (i) => {
