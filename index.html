@@ -1,17 +1,40 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>Practice Program</title>
-        <link rel="stylesheet" href="styles.css">
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-    </head>
-    <body>
-        <input id="pdffile" name="pdffile" type="file" accept=".pdf"/>
+
+<head>
+    <title>Practice Program</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+</head>
+
+<body>
+    <div class="fileselector">
+        <input id="pdffile" name="pdffile" type="file" accept=".pdf">
         <button id="btn" onclick="convert()">Process</button>
-        <div class="timer-container" id="timer"></div>
-        <div class="result-container" id="result">
-        </div>
-        <div id="out"></div>
-        <script src="index.js"></script>
-    </body>
+        <button id="selectorvis" onclick="new function() {
+        var selector = document.getElementById('pdffile');
+        var button = document.getElementById('btn');
+        var visible = document.getElementById('selectorvis');
+        if(selector.style.visibility == ''){
+            selector.style.visibility = 'hidden';
+            button.style.visibility = 'hidden';
+            visible.innerText = 'Show'
+        }
+        else{
+            selector.style.visibility = '';
+            button.style.visibility = '';
+            visible.innerText = 'Hide'
+        }
+        }">Hide</button>
+    </div>
+    <div class="timer-container" id="timer"></div>
+    <div class="result-container" id="result"></div>
+    <div class="button-container" id="progressbtns">
+        <button class="button-style" id="back">&lt&lt Back</button>
+        <button class="button-style" id="next">Next &gt&gt</button>
+        <button class="button-style" id="submit">Submit &gt&gt</button>
+    </div>
+    <script src="index.js"></script>
+</body>
+
 </html>
