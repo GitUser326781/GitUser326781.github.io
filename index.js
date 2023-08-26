@@ -15,13 +15,13 @@ document.getElementById("back").addEventListener("click", function back() {
   current--;
   progress();
 })
-document.getElementById("next").addEventListener("click", function() {
+document.getElementById("next").addEventListener("click", function () {
   getChecked();
   document.getElementById("choices" + current).style.display = "none";
   current++;
   progress();
 })
-document.getElementById("submit").addEventListener("click", function() {
+document.getElementById("submit").addEventListener("click", function () {
   submit();
 })
 
@@ -35,16 +35,6 @@ class questionData { // declare object class for quiz snippet
     this.choices = ['', '', '', '']; // choicse text array
     this.reason = ''; // reason text
     this.chosen = -1; // chosen index
-  }
-  shuffle() { // shuffle function
-    for (let i = 0; i < 3; i++) { // go through the first 3 indexes of questions
-      const R = Math.floor(Math.random() * (i + 1)); // generate a random number
-      if (i == this.answer) { // change the answer index if the current index equals the answer
-        this.answer = R;
-      }
-      // switch the questions around
-      [this.choices[i], this.choices[R]] = [this.choices[R], this.choices[i]];
-    }
   }
 }
 
@@ -103,7 +93,7 @@ function Pdf2TextClass() { // Class fuction Object
             var textLines = [];
             if (null != textContent.items) { // update the text variable if the page content is not null
               // declare and initialise a variable for the page's text and the previous string line
-              var page_text = "";
+              var page_text = "", last_block;
               // loop by the amount of lines of strings there are for the page
               for (var k = 0, index = 0; k < textContent.items.length; k++) {
                 // declare and initialise a variable for the current string line
@@ -111,15 +101,34 @@ function Pdf2TextClass() { // Class fuction Object
                 // get the current line's text
                 page_text = block.str;
                 // if the text has more than 1 character or contains a letter or number...
-                if (page_text.length > 1 || page_text.search(/^[a-zA-Z0-9]$/) > -1) {
-                  if (textLines[index] == null) // add the text to the line array
-                    textLines[index] = page_text;
-                  else // add a space followed by the text to the line array
-                    textLines[index] += ' ' + page_text;
+                if (page_text.length > 0) {
+                  if (page_text == /^\w-/) {
+                    if (textLines[index] == null) {
+                      index++;
+                    }
+                  }
+                  else {
+                    if (textLines[index] == null) {
+                      textLines[index] = page_text;
+                    }
+                    else if (last_block != null) {
+                      if ((last_block.transform[5] - 1) >= block.transform[5]) { // if the current block is lower than the last by a margin of 1, move to the next index
+                        index++;
+                        textLines[index] = page_text;
+                      }
+                      else if ((last_block.width + last_block.transform[4] + 2) >= block.transform[4] || textLines[index].charAt(textLines[index].length - 1) == /\s/) { // if the current block comes before the previous block horizonatally by a margin of 2, add without a space
+                        textLines[index] += page_text;
+                      }
+                      else { // 
+                        index++;
+                        textLines[index] = page_text;
+                      }
+                    }
+                  }
                 } // otherwise move to the next index or the line array
-                else
-                  if (textLines[index] != null) // if the current array's index is not null, move to the next index
-                    index++;
+                else // move to the next index
+                  index++;
+                last_block = block;
               }
             }
             // add the page's text lines to the pages' text content array
@@ -137,65 +146,175 @@ function Pdf2TextClass() { // Class fuction Object
 }; // end of class
 
 function setup() { // function to take document data and convert it to be usable
-  // declare a constant to convert the letter tot a corresponded index number
-  const map = new Map()
-  map.set('A', 0);
-  map.set('B', 1);
-  map.set('C', 2);
-  map.set('D', 3);
-  // declare and initialise a variable to count the page
-  var page = 0;
-  // get question data (question and choices)
-  while (page < layers.length) { // go through all of the document's pages
-    for (let i = 0; i < layers[page].length; i++) { // go through all of the page's lines
-      if (layers[page][i] != null && layers[page][i] == (questions.length + 1) + '.') { // if the text line is not null and the characters is the 'nth' question plus a period (i.e '1.'), then add the question
-        questions[questions.length] = new questionData(); // initialise question data
-        questions[questions.length - 1].question = layers[page][i + 1]; // add question
-        // add choises
-        questions[questions.length - 1].choices[map.get(layers[page][i + 2].charAt(0))] = layers[page][i + 3];
-        questions[questions.length - 1].choices[map.get(layers[page][i + 4].charAt(0))] = layers[page][i + 5];
-        questions[questions.length - 1].choices[map.get(layers[page][i + 6].charAt(0))] = layers[page][i + 7];
-        questions[questions.length - 1].choices[map.get(layers[page][i + 8].charAt(0))] = layers[page][i + 9];
-        i += 8; // add 8 to 'i'
+  var page;
+  // >>>> get question data (question and choices) >>>>
+  // declare and initialise variable for the question number being worked on
+  var n = 0;
+  for (page = 0; questions.length < 100 && page < layers.length; page++) { // go through all of the document's pages
+    for (var i = 0; i < layers[page].length; i++) { // go through all of the page's lines
+      if (layers[page][i] != null && layers[page][i].startsWith((n + 1) + '.')) { // if the text line is not null and the characters is the 'nth' question plus a period (i.e '1.'), then add the question
+        questions[n] = new questionData(); // initialise question data
+        if (/\w+/.test(layers[page][i].replace((n + 1) + ". ", ""))) { // add question if there is other next character when the question number is removed
+          questions[n].question = layers[page][i].replace((n + 1) + ". ", "");
+        }
+        else { // otherwise, move to the next line and add the question
+          i++;
+          questions[n].question = layers[page][i]; // add question
+        }
+        // >>>> adding choises >>>>
+        i++;
+        // declare and initialise variable for question choice being focused on
+        var focus = -1;
+        // loop until the page has no more text
+        while (i < layers[page].length) {
+          // skip the line if it's null or doesn't contain any alphanumeric characters
+          if (layers[page][i] == null && !/\w+/.test(layers[page][i])) {
+            continue;
+          }
+          else if (layers[page][i].startsWith((n + 2) + '.')) { // if the line is the next question, move to the next question, backtrack a line, and leave the loop
+            n++;
+            i--;
+            break;
+          }
+          else if (/^[A-Da-d]\./.test(layers[page][i])) { // if the first characters contain a letter from a to d followed by a period (i.e "B."), initialise focus variable and add text starting from the third character to the choice
+            switch (layers[page][i].substring(0, 1)) {
+              case 'a', 'A': {
+                focus = 0;
+                break;
+              }
+              case 'b', 'B': {
+                focus = 1;
+                break;
+              }
+              case 'c', 'C': {
+                focus = 2;
+                break;
+              }
+              case 'd', 'D': {
+                focus = 3;
+                break;
+              }
+            }
+            questions[n].choices[focus] = layers[page][i].substring(3);
+          }
+          else { // otherwise, depending on the focus, modify question data
+            if (focus > -1) { // if the focus is greater than -1, modify the choices
+              if (/\w+/.test(questions[n].choices[focus])) // if the question choice of focus contains text, add to it
+                questions[n].choices[focus] += " " + layers[page][i];
+              else // otherwise, initialise focused choice text
+                questions[n].choices[focus] = layers[page][i];
+            } // otherwise, modify the question
+            else // otherwise, modify question
+              questions[n].question += " " + layers[page][i];
+          }
+          // move to next line
+          i++;
+          // if the line index is equal to the quantity of lines, move to the next question number
+          if (i >= layers[page].length) {
+            n++;
+          }
+        }
       }
     }
-    page++; // move to the next page
-    if (questions.length == 100) // leave loop if there are 100 questions
-      break;
   }
   // get document data (answer and reason)
-  // declare and initialise variable for the question being worked on
-  var n = 1;
-  while (page < layers.length) { // go through all of the document's pages
-    for (let i = 0; i < layers[page].length; i++) { // go through all of the page's lines
-      if (layers[page][i] != null && layers[page][i] == n + '.') { // if the text line is not null and the characters is the 'nth' question plus a period (i.e '1.'), then add the question data
-        questions[n - 1].answer = map.get(layers[page][i + 1].charAt(0)) // add the answer
-        questions[n - 1].reason += layers[page][i + 1].substring(2); // add the reason
-        n++; // add 1 to n
-        i++; // add 1 to 'i'
-      }
-      else if (i > 2 && n > 1) { // if it's passed the third line on the page and it's passed the first question...
-        questions[n - 2].reason += '\n' + layers[page][i]; // add a newline and the text content to the previous question's reason
+  n = 0; // initialise question number variable to 0
+  while (page < layers.length) { // go through the rest of the document's pages
+    for (var i = 0; i < layers[page].length; i++) { // go through all of the page's lines
+      if (layers[page][i] != null && layers[page][i].startsWith((n + 1) + '.')) { // if the text line is not null and the characters is the 'nth' question plus a period (i.e '1.'), then add the answer
+        var answer = ""; // initialise and declare answer variable
+        if (/\w+/.test(layers[page][i].replace((n + 1) + ". ", ""))) { // if there are characters when the question number is removed, add the answer character
+          answer = layers[page][i].replace((n + 1) + ". ", "").charAt(0);
+        }
+        else { // otherwise, move to the next line and add the answer character
+          i++;
+          answer = layers[page][i].charAt(0);
+        }
+        // >>>> convert to index >>>>
+        // move to the next line
+        i++;
+        // declare and initialise index variable
+        var index = -1;
+        switch (answer) { // initialise index dependent on the answer character
+          case 'a', 'A': {
+            index = 0;
+            break;
+          }
+          case 'b', 'B': {
+            index = 1;
+            break;
+          }
+          case 'c', 'C': {
+            index = 2;
+            break;
+          }
+          case 'd', 'D': {
+            index = 3;
+            break;
+          }
+        }
+        // set the question answer to the index varaible
+        questions[n].answer = index;
+        // loop for the remaining lines on the page
+        while (i < layers[page].length) {
+          // skip line if the line is null or doesn't contain alphanumeric characters
+          if (layers[page][i] == null && !/\w+/.test(layers[page][i])) {
+            continue;
+          }
+          else if (layers[page][i].startsWith((n + 2) + '.')) { // otherwise, move to the next question, backtrack a line if the line, and leave the loop is the next question's data
+            n++;
+            i--;
+            break;
+          }
+          else if (questions[n].reason == null || !/\w/.test(questions[n].reason)) { // otherwise, initialise the reason attribute for the current question if it is null or doesn't contain any alphanumeric characters
+            questions[n].reason = layers[page][i];
+          }
+          else if (layers[page][i].startsWith("SOURCE: ")) { // otherwise, and a new-line character followed by the text if the line starts with the string "SOURCE: "
+            questions[n].reason += "\n" + layers[page][i];
+          }
+          else { // otherwise, add the line to the reason attribute
+            questions[n].reason += " " + layers[page][i];
+          }
+          // move to the next line
+          i++;
+          // move to the next question if the page's line index equals the quantity of the page's lines
+          if (i >= layers[page].length) {
+            n++;
+          }
+        }
       }
     }
     page++; // move to the next page
   }
-
   // Shuffle questions' data
   for (let i = 0; i < questions.length; i++) {
-    questions[i].shuffle;
+    for (let u = 0; u < 3; u++) { // go through the first 3 indexes of questions
+      const R = Math.floor(Math.random() * 4); // generate a random number
+      if (u != R) { // if the random number isn't equal to the current index
+        if (u == questions[i].answer) { // change the answer index if the current index equals the answer
+          questions[i].answer = R;
+        }
+        else if (R == questions[i].answer) { // change the answer if the random number equals the number
+          questions[i].answer = u
+        }
+        // switch the questions around
+        [questions[i].choices[u], questions[i].choices[R]] = [questions[i].choices[R], questions[i].choices[u]];
+      }
+    }
   }
-
-  // Shuffle questions
-  for (let i = 0; i < questions.length; i++) { // go through the questions
-    const R = Math.floor(Math.random() * (i + 1)); // generate a random number
-    // switch the questions around
-    [questions[i], questions[R]] = [questions[R], questions[i]];
+  // Shuffle question order
+  for (let i = 0; i < questions.length - 1; i++) { // go through the questions
+    const R = Math.floor(Math.random() * questions.length); // generate a random number
+    if (i != R) { // if the random number isn't equal to the current index
+      // switch the questions around
+      [questions[i], questions[R]] = [questions[R], questions[i]];
+    }
   }  // start the quiz menu
   startMenu();
 }
 
 function startMenu() {
+  console.log(questions)
   if (questions.length == 100 && questions.reason != "") {
     output.innerHTML = '<p>You will have 90 minutes to complete the quiz. If you take longer than the timeframe, you\'ll be given the amount of time you took regardless.</p><br><button id="start" onclick="start()">Start</button>';
     timer.innerText = '01:30:00';
