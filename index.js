@@ -10,13 +10,11 @@ var fr;
 
 // add action listeners
 document.getElementById("back").addEventListener("click", function back() {
-  getChecked();
   document.getElementById("choices" + current).style.display = "none";
   current--;
   progress();
 })
 document.getElementById("next").addEventListener("click", function () {
-  getChecked();
   document.getElementById("choices" + current).style.display = "none";
   current++;
   progress();
@@ -50,6 +48,8 @@ function convert() { // Function to change pdf to the formatted test
   document.getElementById("back").style.display = "none";
   document.getElementById("next").style.display = "none";
   document.getElementById("submit").style.display = "none";
+  document.getElementById("answervis").style.display = "none";
+  document.getElementById("answervis").innerText = 'Hide Correct Answers';
   timer.style.display = "none";
 
   // declare and initialise file reader variable
@@ -316,7 +316,7 @@ function setup() { // function to take document data and convert it to be usable
 function startMenu() {
   console.log(questions)
   if (questions.length == 100 && questions.reason != "") {
-    output.innerHTML = '<p>You will have 90 minutes to complete the quiz. If you take longer than the timeframe, you\'ll be given the amount of time you took regardless.</p><br><button id="start" onclick="start()">Start</button>';
+    output.innerHTML = '<p>You will have 90 minutes to complete the quiz. If you take longer than the timeframe, you\'ll be given the amount of time you took regardless.</p><br><button class="button-style" id="start" onclick="start()">Start</button>';
     timer.innerText = '01:30:00';
     timer.style.display = "flex"
   }
@@ -384,12 +384,11 @@ function progress() {
   }
 }
 
-getChecked = () => {
-  var choicebtn = document.getElementsByName("choice" + current)
-  for (let i = 0; i < choicebtn.length; i++) {
-    if (choicebtn[i].checked) {
-      questions[current].chosen = i;
-      // console.log(questions[i]);
+getChecked = (i) => {
+  var choicebtn = document.getElementsByName("choice" + i)
+  for (let u = 0; u < choicebtn.length; u++) {
+    if (choicebtn[u].checked) {
+      questions[i].chosen = u;
       break;
     }
   }
@@ -411,6 +410,7 @@ submit = () => {
   document.getElementById("back").style.display = "none";
   document.getElementById("next").style.display = "none";
   document.getElementById("submit").style.display = "none";
+  document.getElementById("answervis").style.display = "unset";
   stopTimer = true;
   timeTotal = Date.now() - starttime;
   const hour = Math.floor(timeTotal / 3600000);
@@ -419,6 +419,7 @@ submit = () => {
   let score = 0;
   let temp = '';
   for (let i = 0; i < 100; i++) {
+    getChecked(i);
     temp += displayAnswer(i);
     if (questions[i].chosen == questions[i].answer) {
       score++;
@@ -434,16 +435,26 @@ displayAnswer = (i) => {
   map.set(1, 'B.');
   map.set(2, 'C.');
   map.set(3, 'D.');
-  var display = [];
-  display.push(
-    '<p>' + questions[i].question + '<br>'
+  map.set(-1, 'nothing');
+  var link = "";
+  var linkStart = questions[i].reason.search(/https?:\/\//);
+  var divclass = '<div class="incorrect">';
+  if (linkStart > -1) {
+    let temp = questions[i].reason.substring(linkStart);
+    link = '<a href="' + temp + '" target="_blank">' + temp + '</a>';
+    questions[i].reason = questions[i].reason.substring(0, linkStart);
+  }
+  if (questions[i].chosen == questions[i].answer) {
+    divclass = '<div class="correct">';
+  }
+
+  var display = divclass + questions[i].question + '<br>'
     + 'A. ' + questions[i].choices[0] + '<br>'
     + 'B. ' + questions[i].choices[1] + '<br>'
     + 'C. ' + questions[i].choices[2] + '<br>'
     + 'D. ' + questions[i].choices[3] + '<br><br>'
     + 'The answer was ' + map.get(questions[i].answer) + '<br><br>'
     + 'You chose ' + map.get(questions[i].chosen) + '<br>'
-    + questions[i].reason + '</p><br>'
-  )
+    + questions[i].reason + link + '<br><br></div>';
   return display;
 }
