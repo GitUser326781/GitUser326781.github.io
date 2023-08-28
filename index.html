@@ -10,22 +10,42 @@
 <body>
     <div class="fileselector">
         <input id="pdffile" name="pdffile" type="file" accept=".pdf">
-        <button id="btn" onclick="convert()">Process</button>
-        <button id="selectorvis" onclick="new function() {
+        <button class="button-style" id="btn" onclick="convert()">Process</button>
+        <button class="button-style" id="selectorvis" onclick="new function() {
         var selector = document.getElementById('pdffile');
         var button = document.getElementById('btn');
         var visible = document.getElementById('selectorvis');
-        if(selector.style.visibility == ''){
-            selector.style.visibility = 'hidden';
-            button.style.visibility = 'hidden';
+        if (selector.style.display == '') {
+            selector.style.display = 'none';
+            button.style.display = 'none';
             visible.innerText = 'Show'
         }
-        else{
-            selector.style.visibility = '';
-            button.style.visibility = '';
-            visible.innerText = 'Hide'
+        else {
+            selector.style.display = '';
+            button.style.display = '';
+            visible.innerText = 'Hide';
         }
         }">Hide</button>
+    </div>
+    <div class="endbuttonpanel">
+        <button class="button-style" id="answervis" onclick="new function(){
+        var visbtn = document.getElementById('answervis');
+        var answer_items = document.getElementsByClassName('correct');
+        if(answer_items.length > 0) {
+            if (answer_items[0].style.display == ''){
+                visbtn.innerText = 'Show Correct Answers';
+                for(let i = 0; i < answer_items.length; i++){
+                    answer_items[i].style.display = 'none';
+                }
+            }
+            else {
+                visbtn.innerText = 'Hide Correct Answers';
+                for(let i = 0; i < answer_items.length; i++){
+                    answer_items[i].style.display = '';
+                }
+            }
+        }
+    }">Hide Correct Answers</button>
     </div>
     <div class="timer-container" id="timer"></div>
     <div class="result-container" id="result"></div>
