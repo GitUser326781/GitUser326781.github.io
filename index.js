@@ -154,7 +154,7 @@ function setup() { // function to take document data and convert it to be usable
     for (var i = 0; i < layers[page].length; i++) { // go through all of the page's lines
       if (layers[page][i] != null && layers[page][i].startsWith((n + 1) + '.')) { // if the text line is not null and the characters is the 'nth' question plus a period (i.e '1.'), then add the question
         questions[n] = new questionData(); // initialise question data
-        if (/\w+/.test(layers[page][i].replace((n + 1) + ". ", ""))) { // add question if there is other next character when the question number is removed
+        if (/\w+/.test(layers[page][i].replace((n + 1) + ". ", ""))) { // add question if there are more characters after the question number is removed
           questions[n].question = layers[page][i].replace((n + 1) + ". ", "");
         }
         else { // otherwise, move to the next line and add the question
@@ -195,14 +195,23 @@ function setup() { // function to take document data and convert it to be usable
                 break;
               }
             }
-            questions[n].choices[focus] = layers[page][i].substring(3);
+            var questionChoice = layers[page][i].substring(3);
+            var nextOnSame = questionChoice.search(/\s[A-Da-d]\./); // declare and initialise variable for the position of another choice character containing a letter followed by a period
+            if (nextOnSame > -1) { //
+              questions[n].choices[focus] = questionChoice.substring(0, nextOnSame); // add text up to the next choice
+              layers[page][i] = questionChoice.substring(nextOnSame + 1);
+              i--;
+            }
+            else
+              questions[n].choices[focus] = questionChoice;
           }
           else { // otherwise, depending on the focus, modify question data
             if (focus > -1) { // if the focus is greater than -1, modify the choices
               if (/\w+/.test(questions[n].choices[focus])) // if the question choice of focus contains text, add to it
                 questions[n].choices[focus] += " " + layers[page][i];
-              else // otherwise, initialise focused choice text
-                questions[n].choices[focus] = layers[page][i];
+              else { // otherwise, initialise focused choice text
+                questions[n].choices[focus] = layers[page][i]; // add text to choice
+              }
             } // otherwise, modify the question
             else // otherwise, modify question
               questions[n].question += " " + layers[page][i];
@@ -314,7 +323,6 @@ function setup() { // function to take document data and convert it to be usable
 }
 
 function startMenu() {
-  console.log(questions)
   if (questions.length == 100 && questions.reason != "") {
     output.innerHTML = '<p>You will have 90 minutes to complete the quiz. If you take longer than the timeframe, you\'ll be given the amount of time you took regardless.</p><br><button class="button-style" id="start" onclick="start()">Start</button>';
     timer.innerText = '01:30:00';
